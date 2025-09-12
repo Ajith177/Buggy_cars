@@ -23,7 +23,7 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                echo '📦 Installing Node.js dependencies...'
+                echo '📦 Installing Node.js dependencies on host...'
                 sh 'npm ci'
             }
         }
@@ -44,14 +44,14 @@ pipeline {
         stage('Run Playwright Tests') {
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.47.0-jammy' // official Playwright Docker image
-                    args '-u root' // allows npm installs if needed
+                    image 'mcr.microsoft.com/playwright:v1.47.0-jammy'
+                    args '-u root' // allows npm installs
                 }
             }
             steps {
                 echo '🧪 Running Playwright tests inside Docker container...'
                 sh 'npm ci' // installs dependencies
-                sh 'npx playwright test --reporter=allure-playwright' // run tests
+                sh 'npx playwright test --reporter=allure-playwright'
             }
         }
 

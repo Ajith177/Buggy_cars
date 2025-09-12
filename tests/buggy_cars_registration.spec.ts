@@ -102,6 +102,17 @@ test.describe.serial('Buggy cars', () => {
     await page.screenshot({path:path.join(screenshotDir,'REG_008.png')})
   });
 
+  test('REG_009 - Capital Characters at the length of 10',async()=>{
+    await page.reload();
+    await page.waitForTimeout(2000)
+    await expect(page.locator('#username')).toBeVisible();
+    await page.waitForTimeout(2000)
+    await page.locator('#username').fill('ABCDEFGHIJK')
+    await page.screenshot({path:path.join(screenshotDir,'REG_009.png')})
+
+  })
+
+
 
   // Runs once after all tests
   test.afterAll(async () => {
