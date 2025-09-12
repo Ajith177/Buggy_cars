@@ -6,23 +6,21 @@ pipeline {
     }
 
     environment {
-        environment {
         SCANNER_HOME = '/opt/sonar-scanner-5.0.1.3006-linux/bin'
         SONAR_HOST_URL = 'http://192.168.1.4:9000'
         SONAR_AUTH_TOKEN = credentials('sonar_token')
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
         ALLURE_URL = 'http://192.168.1.4:8081'
     }
-    }
 
-    stage('Clone') {
+    stages {
+        stage('Clone') {
             steps {
                 echo '🔄 Cloning repositories...'
                 checkout scm
             }
         }
 
-    stages {
         stage('Install Dependencies') {
             steps {
                 echo '📦 Installing Node.js dependencies...'
@@ -54,7 +52,6 @@ pipeline {
             }
             steps {
                 echo '📧 Sending success email...'
-                // Zip Allure results (optional)
                 sh 'zip -r allure-report.zip allure-results || true'
                 
                 emailext(
@@ -68,7 +65,7 @@ pipeline {
 
 🔗 Jenkins Job: ${env.JOB_NAME}
 🔗 Build URL: ${env.BUILD_URL}
-🔗 Allure Report: http://192.168.1.4:8081
+🔗 Allure Report: ${env.ALLURE_URL}
 """,
                     to: 'loneloverioo@gmail.com',
                     attachmentsPattern: 'unit_test_report.txt,trivy_report.txt,allure-report.zip'
