@@ -50,12 +50,12 @@ pipeline {
 
         stage('Notify Success') {
             when {
-                expression { currentBuild.result == null  currentBuild.result in ['SUCCESS', 'UNSTABLE'] }
+                expression { currentBuild.result == null  ||  currentBuild.result in ['SUCCESS', 'UNSTABLE'] }
             }
             steps {
                 echo '📧 Sending success email...'
                 // Zip Allure results (optional)
-                sh 'zip -r allure-report.zip allure-results  true'
+                sh 'zip -r allure-report.zip allure-results || true'
                 
                 emailext(
                     subject: "✅ Build Passed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
