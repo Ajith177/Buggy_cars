@@ -116,6 +116,8 @@ test.describe.serial('Buggy cars', () => {
 
   // Runs once after all tests
   test.afterAll(async () => {
-    await page.close();
+    if(page){
+      await page.close();
+    }
   });
 });

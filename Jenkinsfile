@@ -44,7 +44,7 @@ pipeline {
         stage('Run Playwright Tests') {
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.47.0-jammy'
+                    image 'mcr.microsoft.com/playwright:v1.55.0-jammy'
                     args '-u root -v /var/lib/jenkins/npm-cache:/root/.npm'
                 }
             }
