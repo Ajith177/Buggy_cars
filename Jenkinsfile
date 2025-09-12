@@ -45,7 +45,7 @@ pipeline {
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.47.0-jammy'
-                    args '-u root' // allows npm installs
+                    args '-u root -v /var/lib/jenkins/npm-cache:/root/.npm'
                 }
             }
             steps {
