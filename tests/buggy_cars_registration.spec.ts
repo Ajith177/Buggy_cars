@@ -114,6 +114,7 @@ test.describe.serial('Buggy cars', () => {
 
 
 
+
   // Runs once after all tests
   test.afterAll(async () => {
     if(page){
