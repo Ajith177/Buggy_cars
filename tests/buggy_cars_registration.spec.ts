@@ -100,7 +100,7 @@ test.describe.serial('Buggy cars', () => {
     await page.waitForTimeout(2000)
     await page.locator('#username').fill('jkhfrihfiffuirfhuirhf     hfiuhriufhirufhurhfirhfu   uifhiurhfuirhfurhf')
     await page.screenshot({path:path.join(screenshotDir,'REG_008.png')})
-  })
+  });
 
 
   // Runs once after all tests
