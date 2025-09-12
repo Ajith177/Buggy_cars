@@ -93,6 +93,15 @@ test.describe.serial('Buggy cars', () => {
     await page.screenshot({path:path.join(screenshotDir,'REG_007.png')})
   })
 
+  test('REG_008 - Small Character + Blank Spaces length greater than 50',async()=>{
+    await page.reload();
+    await page.waitForTimeout(2000)
+    await expect(page.locator('#username')).toBeVisible();
+    await page.waitForTimeout(2000)
+    await page.locator('#username').fill('jkhfrihfiffuirfhuirhf     hfiuhriufhirufhurhfirhfu   uifhiurhfuirhfurhf')
+    await page.screenshot({path:path.join(screenshotDir,'REG_008.png')})
+  })
+
 
   // Runs once after all tests
   test.afterAll(async () => {
