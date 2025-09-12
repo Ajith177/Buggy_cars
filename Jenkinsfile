@@ -28,11 +28,31 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                echo '🔍 Running SonarQube analysis...'
+                sh """
+                    ${env.SCANNER_HOME}/sonar-scanner \
+                    -Dsonar.projectKey=buggy_cars_test \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=${env.SONAR_HOST_URL} \
+                    -Dsonar.login=${env.SONAR_AUTH_TOKEN}
+                """
+            }
+        }
+
         stage('Run Playwright Tests') {
             steps {
                 echo '🧪 Running Playwright tests...'
                 sh 'npx playwright install'
                 sh 'npx playwright test --reporter=allure-playwright'
+            }
+        }
+
+        stage('Trivy Security Scan') {
+            steps {
+                echo '🔒 Running Trivy vulnerability scan...'
+                sh 'trivy fs . > trivy_report.txt || true'
             }
         }
 
@@ -46,9 +66,19 @@ pipeline {
             }
         }
 
+        stage('Deploy Allure Report') {
+            steps {
+                echo '🚀 Deploying Allure report to web server...'
+                sh """
+                    rm -rf ${env.ALLURE_DEPLOY_DIR}/*
+                    cp -r allure-report/* ${env.ALLURE_DEPLOY_DIR}/
+                """
+            }
+        }
+
         stage('Notify Success') {
             when {
-                expression { currentBuild.result == null  ||  currentBuild.result in ['SUCCESS', 'UNSTABLE'] }
+                expression { currentBuild.result == null || currentBuild.result in ['SUCCESS', 'UNSTABLE'] }
             }
             steps {
                 echo '📧 Sending success email...'
