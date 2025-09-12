@@ -42,10 +42,16 @@ pipeline {
         }
 
         stage('Run Playwright Tests') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.47.0-jammy' // official Playwright Docker image
+                    args '-u root' // allows npm installs if needed
+                }
+            }
             steps {
-                echo '🧪 Running Playwright tests...'
-                sh 'npx playwright install'
-                sh 'npx playwright test --reporter=allure-playwright'
+                echo '🧪 Running Playwright tests inside Docker container...'
+                sh 'npm ci' // installs dependencies
+                sh 'npx playwright test --reporter=allure-playwright' // run tests
             }
         }
 
