@@ -76,8 +76,9 @@ pipeline {
             steps {
                 echo '🚀 Deploying Allure report to web server...'
                 sh """
-                    rm -rf ${env.ALLURE_DEPLOY_DIR}/*
-                    cp -r allure-report/* ${env.ALLURE_DEPLOY_DIR}/
+                    sudo mkdir -p /var/www/html/allure
+                    sudo rm -rf ${env.ALLURE_DEPLOY_DIR}/*
+                    sudo cp -r allure-report/* ${env.ALLURE_DEPLOY_DIR}/
                 """
             }
         }
