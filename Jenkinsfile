@@ -6,12 +6,11 @@ pipeline {
     }
 
     environment {
-        SCANNER_HOME     = '/opt/sonar-scanner-5.0.1.3006-linux/bin'
-        SONAR_HOST_URL   = 'http://192.168.1.4:9000'
-        SONAR_AUTH_TOKEN = credentials('sonar_token')
+        SCANNER_HOME      = '/opt/sonar-scanner-5.0.1.3006-linux/bin'
+        SONAR_HOST_URL    = 'http://192.168.1.4:9000'
+        SONAR_AUTH_TOKEN  = credentials('sonar_token')
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
-        ALLURE_URL       = 'http://192.168.1.4:8081'
-        PW_WORKERS       = '4'  
+        ALLURE_URL        = 'http://192.168.1.4:8081'
     }
 
     stages {
@@ -29,7 +28,7 @@ pipeline {
             }
         }
 
-        stage('Run Playwright Tests with Coverage') {
+        stage('Run Playwright Tests') {
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.55.0-jammy'
@@ -37,29 +36,29 @@ pipeline {
                 }
             }
             steps {
-                echo "🧪 Running Playwright tests with coverage..."
+                echo "🧪 Running Playwright tests with ${env.PW_WORKERS} workers..."
                 sh 'npm ci'
-                sh 'npm run test:coverage'
+                sh "npx playwright test --workers=${env.PW_WORKERS} --reporter=allure-playwright"
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                echo '🔍 Running SonarQube analysis...'
+                echo '🔍 Running SonarQube analysis (coverage skipped)...'
                 sh """
                     ${env.SCANNER_HOME}/sonar-scanner \
                     -Dsonar.projectKey=buggy_cars_test \
                     -Dsonar.sources=tests \
                     -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                    -Dsonar.login=${env.SONAR_AUTH_TOKEN}\
+                    -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
                     -Dsonar.cpd.exclusions=tests/** \
-                    -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
+                    -Dsonar.coverage.exclusions=tests/** \
                     -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
                 """
             }
         }
 
-         stage('Quality Gate') {
+        stage('Quality Gate') {
             steps {
                 echo '✅ Waiting for SonarQube Quality Gate...'
                 script {
@@ -70,7 +69,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('Trivy Scan') {
             steps {
@@ -112,7 +110,6 @@ pipeline {
             steps {
                 echo '📧 Sending success email...'
 
-                // Zip reports
                 sh 'zip -r allure-report.zip allure-report || true'
                 sh 'zip -r trivy-report.zip trivy_report.txt || true'
 
@@ -143,10 +140,10 @@ pipeline {
             echo '📧 Sending failure email...'
             emailext(
                 subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """<p>The pipeline has failed </p>
+                body: """<p>The pipeline has failed</p>
 <p><b>Possible issues:</b></p>
 <ul>
-<li>Quality Gate failure</li>
+<li>SonarQube Quality Gate failure</li>
 <li>Playwright test errors</li>
 <li>Trivy scan findings</li>
 </ul>

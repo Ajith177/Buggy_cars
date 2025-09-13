@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test",
-    "test:coverage": "nyc --reporter=lcov --reporter=text npx playwright test --workers=3 --reporter=allure-playwright"
+    "test:coverage": "nyc --reporter=lcov --reporter=text npx playwright test --workers=4 --reporter=allure-playwright"
   },
   "keywords": [],
   "author": "",
