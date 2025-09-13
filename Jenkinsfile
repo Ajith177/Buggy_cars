@@ -29,6 +29,20 @@ pipeline {
             }
         }
 
+        stage('Run Playwright Tests with Coverage') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.55.0-jammy'
+                    args '-u root -v /var/lib/jenkins/npm-cache:/root/.npm'
+                }
+            }
+            steps {
+                echo "🧪 Running Playwright tests with coverage..."
+                sh 'npm ci'
+                sh 'npm run test:coverage'
+            }
+        }
+
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis...'
@@ -57,19 +71,6 @@ pipeline {
             }
         }
 
-        stage('Run Playwright Tests') {
-            agent {
-                docker {
-                    image 'mcr.microsoft.com/playwright:v1.55.0-jammy'
-                    args '-u root -v /var/lib/jenkins/npm-cache:/root/.npm'
-                }
-            }
-            steps {
-                echo "🧪 Running Playwright tests with ${env.PW_WORKERS} workers..."
-                sh 'npm ci'
-                sh "npx playwright test --workers=${env.PW_WORKERS} --reporter=allure-playwright"
-            }
-        }
 
         stage('Trivy Scan') {
             steps {
