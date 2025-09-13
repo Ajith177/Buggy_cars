@@ -11,11 +11,10 @@ pipeline {
         SONAR_AUTH_TOKEN  = credentials('sonar_token')
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
         ALLURE_URL        = 'http://192.168.1.4:8081'
-        PW_WORKERS        = '3'  
+        PW_WORKERS        = '3'  // Default number of Playwright workers
     }
 
     stages {
-
         stage('Clone') {
             steps {
                 echo '🔄 Cloning repository...'
@@ -39,38 +38,39 @@ pipeline {
             }
             steps {
                 script {
-                    echo "🧪 Running Playwright tests with ${env.PW_WORKERS} workers..."
+                    def workers = env.PW_WORKERS ?: '1'
+                    echo "🧪 Running Playwright tests with ${workers} workers..."
                     sh 'npm ci'
-                    sh "npx playwright test --workers=${env.PW_WORKERS} --reporter=allure-playwright"
+                    sh "npx playwright test --workers=${workers} --reporter=allure-playwright"
                 }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                script {
-                    echo '🔍 Running SonarQube analysis (coverage skipped)...'
-                    sh """
-                        ${env.SCANNER_HOME}/sonar-scanner \
-                        -Dsonar.projectKey=buggy_cars_test \
-                        -Dsonar.sources=tests \
-                        -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                        -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
-                        -Dsonar.cpd.exclusions=tests/** \
-                        -Dsonar.coverage.exclusions=tests/** \
-                        -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
-                    """
-                }
+                echo '🔍 Running SonarQube analysis (coverage skipped)...'
+                sh """
+                    ${env.SCANNER_HOME}/sonar-scanner \
+                    -Dsonar.projectKey=buggy_cars_test \
+                    -Dsonar.sources=tests \
+                    -Dsonar.host.url=${env.SONAR_HOST_URL} \
+                    -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
+                    -Dsonar.cpd.exclusions=tests/** \
+                    -Dsonar.coverage.exclusions=tests/** \
+                    -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
+                """
             }
         }
 
         stage('Quality Gate') {
             steps {
+                echo '✅ Waiting for SonarQube Quality Gate...'
                 script {
-                    echo '✅ Waiting for SonarQube Quality Gate...'
                     def qg = waitForQualityGate()
                     if (qg.status != 'OK') {
                         error "Quality Gate failed: ${qg.status}"
+                    } else {
+                        echo "SonarQube Quality Gate passed ✅"
                     }
                 }
             }
@@ -78,40 +78,34 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                script {
-                    echo '🔐 Running Trivy vulnerability scan...'
-                    sh '''
-                        export TRIVY_CACHE_DIR=/var/lib/jenkins/trivy-cache
-                        export TRIVY_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-db
-                        trivy fs --no-progress --format table -o trivy_report.txt . || true
-                    '''
-                }
+                echo '🔐 Running Trivy vulnerability scan...'
+                sh '''
+                    export TRIVY_CACHE_DIR=/var/lib/jenkins/trivy-cache
+                    export TRIVY_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-db
+                    trivy fs --no-progress --format table -o trivy_report.txt . || true
+                '''
             }
         }
 
         stage('Allure Report in Jenkins UI') {
             steps {
-                script {
-                    echo '📊 Publishing Allure Report to Jenkins UI...'
-                    allure includeProperties: false,
-                           jdk: '',
-                           reportBuildPolicy: 'ALWAYS',
-                           results: [[path: 'allure-results']]
-                }
+                echo '📊 Publishing Allure Report to Jenkins UI...'
+                allure includeProperties: false,
+                       jdk: '',
+                       reportBuildPolicy: 'ALWAYS',
+                       results: [[path: 'allure-results']]
             }
         }
 
         stage('Generate & Deploy Allure Report') {
             steps {
-                script {
-                    echo '🚀 Generating and deploying Allure report...'
-                    sh """
-                        npx allure generate allure-results --clean -o allure-report
-                        mkdir -p ${env.ALLURE_DEPLOY_DIR}
-                        rm -rf ${env.ALLURE_DEPLOY_DIR}/*
-                        cp -r allure-report/* ${env.ALLURE_DEPLOY_DIR}/
-                    """
-                }
+                echo '🚀 Generating and deploying Allure report...'
+                sh """
+                    npx allure generate allure-results --clean -o allure-report
+                    mkdir -p ${env.ALLURE_DEPLOY_DIR}
+                    rm -rf ${env.ALLURE_DEPLOY_DIR}/*
+                    cp -r allure-report/* ${env.ALLURE_DEPLOY_DIR}/
+                """
             }
         }
 
@@ -129,7 +123,6 @@ pipeline {
                     emailext(
                         subject: "✅ Build Passed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                         body: """<p>Good news! The pipeline completed successfully 🎉</p>
-<p><b>Summary:</b></p>
 <ul>
 <li>SonarQube Quality Gate passed</li>
 <li>Playwright tests executed</li>
@@ -137,9 +130,8 @@ pipeline {
 <li>Allure report published</li>
 </ul>
 <p><b>Links:</b><br>
- <a href='${env.BUILD_URL}'>Jenkins Job</a><br>
- <a href='${env.ALLURE_URL}'>Allure HTML Report</a></p>
-""",
+<a href='${env.BUILD_URL}'>Jenkins Job</a><br>
+<a href='${env.ALLURE_URL}'>Allure HTML Report</a></p>""",
                         mimeType: 'text/html',
                         to: 'loneloverioo@gmail.com',
                         attachmentsPattern: 'allure-report.zip,trivy-report.zip'
@@ -147,29 +139,24 @@ pipeline {
                 }
             }
         }
-
     }
 
     post {
         failure {
-            script {
-                echo '📧 Sending failure email...'
-                emailext(
-                    subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                    body: """<p>The pipeline has failed</p>
-<p><b>Possible issues:</b></p>
+            echo '📧 Sending failure email...'
+            emailext(
+                subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """<p>The pipeline has failed</p>
 <ul>
 <li>SonarQube Quality Gate failure</li>
 <li>Playwright test errors</li>
 <li>Trivy scan findings</li>
 </ul>
 <p><b>Links:</b><br>
- <a href='${env.BUILD_URL}'>Jenkins Job</a></p>
-""",
-                    mimeType: 'text/html',
-                    to: 'loneloverioo@gmail.com'
-                )
-            }
+<a href='${env.BUILD_URL}'>Jenkins Job</a></p>""",
+                mimeType: 'text/html',
+                to: 'loneloverioo@gmail.com'
+            )
         }
     }
 }
