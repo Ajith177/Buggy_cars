@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
-import { exitCode } from 'process';
-import { waitForDebugger } from 'inspector';
+
 
 test.describe.serial('Buggy cars', () => {
   let page;
