@@ -88,7 +88,7 @@ test.describe.serial('Buggy cars', () => {
   test('REG_007 - Blank + Small Characters length > 10',async()=>{
     await page.reload();
     await page.waitForTimeout(4000)
-    await expect(page.locator('#username')).toBeVisible;
+    await expect(page.locator('#username')).toBeVisible();
     await page.waitForTimeout(4000)
     await page.locator('#username').fill('     jhfurfurfurhfrfuhrf')
     await page.screenshot({path:path.join(screenshotDir,'REG_007.png')})
