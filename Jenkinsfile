@@ -6,11 +6,12 @@ pipeline {
     }
 
     environment {
-        SCANNER_HOME = '/opt/sonar-scanner-5.0.1.3006-linux/bin'
-        SONAR_HOST_URL = 'http://192.168.1.4:9000'
+        SCANNER_HOME     = '/opt/sonar-scanner-5.0.1.3006-linux/bin'
+        SONAR_HOST_URL   = 'http://192.168.1.4:9000'
         SONAR_AUTH_TOKEN = credentials('sonar_token')
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
-        ALLURE_URL = 'http://192.168.1.4:8081'
+        ALLURE_URL       = 'http://192.168.1.4:8081'
+        PW_WORKERS       = '3'   // Default for Jenkins (safe value)
     }
 
     stages {
@@ -23,7 +24,7 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                echo '📦 Installing Node.js dependencies on host...'
+                echo '📦 Installing Node.js dependencies...'
                 sh 'npm ci'
             }
         }
@@ -36,7 +37,8 @@ pipeline {
                     -Dsonar.projectKey=buggy_cars_test \
                     -Dsonar.sources=. \
                     -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                    -Dsonar.login=${env.SONAR_AUTH_TOKEN}
+                    -Dsonar.login=${env.SONAR_AUTH_TOKEN}\
+                    -Dsonar.exclusions=**/venv/**,**/node_modules/**
                 """
             }
         }
@@ -49,9 +51,9 @@ pipeline {
                 }
             }
             steps {
-                echo '🧪 Running Playwright tests inside Docker container...'
-                sh 'npm ci' // installs dependencies
-                sh 'npx playwright test --reporter=allure-playwright'
+                echo "🧪 Running Playwright tests with ${env.PW_WORKERS} workers..."
+                sh 'npm ci'
+                sh "npx playwright test --workers=${env.PW_WORKERS} --reporter=allure-playwright"
             }
         }
 
@@ -72,13 +74,14 @@ pipeline {
             }
         }
 
-        stage('Deploy Allure Report') {
+        stage('Generate & Deploy Allure Report') {
             steps {
-                echo '🚀 Deploying Allure report to web server...'
+                echo '🚀 Generating and deploying Allure report...'
                 sh """
-                     mkdir -p /var/www/html/allure
-                     rm -rf ${env.ALLURE_DEPLOY_DIR}/*
-                     cp -r allure-report/* ${env.ALLURE_DEPLOY_DIR}/
+                    npx allure generate allure-results --clean -o allure-report
+                    mkdir -p ${env.ALLURE_DEPLOY_DIR}
+                    rm -rf ${env.ALLURE_DEPLOY_DIR}/*
+                    cp -r allure-report/* ${env.ALLURE_DEPLOY_DIR}/
                 """
             }
         }
@@ -89,23 +92,28 @@ pipeline {
             }
             steps {
                 echo '📧 Sending success email...'
-                sh 'zip -r allure-report.zip allure-results || true'
-                
+
+                // Zip reports
+                sh 'zip -r allure-report.zip allure-report || true'
+                sh 'zip -r trivy-report.zip trivy_report.txt || true'
+
                 emailext(
                     subject: "✅ Build Passed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                    body: """Good news!
-
-✔️ SonarQube Quality Gate passed
-✔️ Playwright tests executed
-✔️ Trivy scan completed
-✔️ Allure report published
-
-🔗 Jenkins Job: ${env.JOB_NAME}
-🔗 Build URL: ${env.BUILD_URL}
-🔗 Allure Report: ${env.ALLURE_URL}
+                    body: """<p>Good news! The pipeline completed successfully 🎉</p>
+<p><b>Summary:</b></p>
+<ul>
+<li>SonarQube Quality Gate passed</li>
+<li>Playwright tests executed</li>
+<li>Trivy scan completed</li>
+<li>Allure report published</li>
+</ul>
+<p><b>Links:</b><br>
+ <a href='${env.BUILD_URL}'>Jenkins Job</a><br>
+<a href='${env.ALLURE_URL}'>Allure HTML Report</a></p>
 """,
+                    mimeType: 'text/html',
                     to: 'loneloverioo@gmail.com',
-                    attachmentsPattern: 'unit_test_report.txt,trivy_report.txt,allure-report.zip'
+                    attachmentsPattern: 'allure-report.zip,trivy-report.zip'
                 )
             }
         }
@@ -116,16 +124,17 @@ pipeline {
             echo '📧 Sending failure email...'
             emailext(
                 subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """The pipeline has failed.
-
-⚠️ Possible issues:
-- Quality Gate failure
-- Playwright test errors
-- Trivy scan findings
-
-🔗 Jenkins Job: ${env.JOB_NAME}
-🔗 Build URL: ${env.BUILD_URL}
+                body: """<p>The pipeline has failed </p>
+<p><b>Possible issues:</b></p>
+<ul>
+<li>Quality Gate failure</li>
+<li>Playwright test errors</li>
+<li>Trivy scan findings</li>
+</ul>
+<p><b>Links:</b><br>
+ <a href='${env.BUILD_URL}'>Jenkins Job</a></p>
 """,
+                mimeType: 'text/html',
                 to: 'loneloverioo@gmail.com'
             )
         }
