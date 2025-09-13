@@ -35,10 +35,10 @@ pipeline {
                 sh """
                     ${env.SCANNER_HOME}/sonar-scanner \
                     -Dsonar.projectKey=buggy_cars_test \
-                    -Dsonar.sources=. \
+                    -Dsonar.sources=tests \
                     -Dsonar.host.url=${env.SONAR_HOST_URL} \
                     -Dsonar.login=${env.SONAR_AUTH_TOKEN}\
-                    -Dsonar.exclusions=**/venv/**,**/node_modules/**
+                    -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
                 """
             }
         }
