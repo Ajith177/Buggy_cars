@@ -39,6 +39,7 @@ pipeline {
                     -Dsonar.host.url=${env.SONAR_HOST_URL} \
                     -Dsonar.login=${env.SONAR_AUTH_TOKEN}\
                     -Dsonar.cpd.exclusions=tests/** \
+                    -Dsonar.typescript.lcov.reportPaths=coverage/lcov.info \
                     -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
                 """
             }
