@@ -11,13 +11,13 @@ pipeline {
         SONAR_AUTH_TOKEN  = credentials('sonar_token')
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
         ALLURE_URL        = 'http://192.168.1.4:8081'
-        PW_WORKERS = '3'
+        PW_WORKERS        = '4'  
     }
 
     stages {
         stage('Clone') {
             steps {
-                echo '🔄 Cloning repositories...'
+                echo '🔄 Cloning repository...'
                 checkout scm
             }
         }
@@ -38,8 +38,12 @@ pipeline {
             }
             steps {
                 echo "🧪 Running Playwright tests with ${env.PW_WORKERS} workers..."
-                sh 'npm ci'
-                sh "npx playwright test --workers=${env.PW_WORKERS} --reporter=allure-playwright"
+                withEnv(["PW_WORKERS=${env.PW_WORKERS}"]) {
+                    catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                        sh 'npm ci'
+                        sh 'npx playwright test --workers=$PW_WORKERS --reporter=allure-playwright'
+                    }
+                }
             }
         }
 
@@ -75,9 +79,9 @@ pipeline {
             steps {
                 echo '🔐 Running Trivy vulnerability scan...'
                 sh '''
-                 export TRIVY_CACHE_DIR=/var/lib/jenkins/trivy-cache
-                 export TRIVY_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-db
-                 trivy fs --no-progress --format table -o trivy_report.txt . || true
+                    export TRIVY_CACHE_DIR=/var/lib/jenkins/trivy-cache
+                    export TRIVY_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-db
+                    trivy fs --no-progress --format table -o trivy_report.txt . || true
                 '''
             }
         }
@@ -125,7 +129,7 @@ pipeline {
 <li>Allure report published</li>
 </ul>
 <p><b>Links:</b><br>
- <a href='${env.BUILD_URL}'>Jenkins Job</a><br>
+<a href='${env.BUILD_URL}'>Jenkins Job</a><br>
 <a href='${env.ALLURE_URL}'>Allure HTML Report</a></p>
 """,
                     mimeType: 'text/html',
@@ -149,7 +153,7 @@ pipeline {
 <li>Trivy scan findings</li>
 </ul>
 <p><b>Links:</b><br>
- <a href='${env.BUILD_URL}'>Jenkins Job</a></p>
+<a href='${env.BUILD_URL}'>Jenkins Job</a></p>
 """,
                 mimeType: 'text/html',
                 to: 'loneloverioo@gmail.com'
