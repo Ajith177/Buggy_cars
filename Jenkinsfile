@@ -11,7 +11,7 @@ pipeline {
         SONAR_AUTH_TOKEN = credentials('sonar_token')
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
         ALLURE_URL       = 'http://192.168.1.4:8081'
-        PW_WORKERS       = '3'   // Default for Jenkins (safe value)
+        PW_WORKERS       = '4'  
     }
 
     stages {
@@ -38,8 +38,21 @@ pipeline {
                     -Dsonar.sources=tests \
                     -Dsonar.host.url=${env.SONAR_HOST_URL} \
                     -Dsonar.login=${env.SONAR_AUTH_TOKEN}\
+                    -Dsonar.cpd.exclusions=tests/** \
                     -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
                 """
+            }
+        }
+
+         stage('Quality Gate') {
+            steps {
+                echo '✅ Waiting for SonarQube Quality Gate...'
+                script {
+                    def qg = waitForQualityGate()
+                    if (qg.status != 'OK') {
+                        error "Quality Gate failed: ${qg.status}"
+                    }
+                }
             }
         }
 
@@ -57,10 +70,14 @@ pipeline {
             }
         }
 
-        stage('Trivy Security Scan') {
+        stage('Trivy Scan') {
             steps {
-                echo '🔒 Running Trivy vulnerability scan...'
-                sh 'trivy fs . > trivy_report.txt || true'
+                echo '🔐 Running Trivy vulnerability scan...'
+                sh '''
+                 export TRIVY_CACHE_DIR=/var/lib/jenkins/trivy-cache
+                 export TRIVY_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-db
+                 trivy fs --no-progress --format table -o trivy_report.txt . || true
+                '''
             }
         }
 
