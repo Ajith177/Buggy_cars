@@ -11,7 +11,7 @@ pipeline {
         SONAR_AUTH_TOKEN  = credentials('sonar_token')
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
         ALLURE_URL        = 'http://192.168.1.4:8081'
-        PW_WORKERS        = '3'  // Default number of Playwright workers
+        PW_WORKERS        = '3'
     }
 
     stages {
@@ -49,28 +49,28 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis (coverage skipped)...'
-                sh """
-                    ${env.SCANNER_HOME}/sonar-scanner \
-                    -Dsonar.projectKey=buggy_cars_test \
-                    -Dsonar.sources=tests \
-                    -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                    -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
-                    -Dsonar.cpd.exclusions=tests/** \
-                    -Dsonar.coverage.exclusions=tests/** \
-                    -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
-                """
+                withSonarQubeEnv('Mysonarqube') {   // 🔑 must match Jenkins global config
+                    sh """
+                        ${env.SCANNER_HOME}/sonar-scanner \
+                        -Dsonar.projectKey=buggy_cars_test \
+                        -Dsonar.sources=tests \
+                        -Dsonar.host.url=${env.SONAR_HOST_URL} \
+                        -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
+                        -Dsonar.cpd.exclusions=tests/** \
+                        -Dsonar.coverage.exclusions=tests/** \
+                        -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
+                    """
+                }
             }
         }
 
         stage('Quality Gate') {
             steps {
                 echo '✅ Waiting for SonarQube Quality Gate...'
-                script {
-                    def qg = waitForQualityGate()
-                    if (qg.status != 'OK') {
-                        error "Quality Gate failed: ${qg.status}"
-                    } else {
-                        echo "SonarQube Quality Gate passed ✅"
+                timeout(time: 2, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate(abortPipeline: true)
+                        echo "SonarQube Quality Gate status: ${qg.status}"
                     }
                 }
             }
