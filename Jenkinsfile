@@ -40,8 +40,18 @@ pipeline {
                 script {
                     def workers = env.PW_WORKERS ?: '1'
                     echo "🧪 Running Playwright tests with ${workers} workers..."
-                    sh 'npm ci'
-                    sh "npx playwright test --workers=${workers} --reporter=allure-playwright"
+
+                    // Timeout protection
+                    timeout(time: 15, unit: 'MINUTES') {
+                        sh 'npm ci'
+                        sh "npx playwright test --workers=${workers} --reporter=allure-playwright"
+                    }
+                }
+            }
+            post {
+                always {
+                    echo '🧹 Cleaning up any leftover Docker containers...'
+                    sh 'docker ps -aq --filter "status=exited" | xargs -r docker rm -f || true'
                 }
             }
         }
@@ -49,7 +59,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis (coverage skipped)...'
-                withSonarQubeEnv('Mysonarqube') {   // 🔑 must match Jenkins global config
+                withSonarQubeEnv('Mysonarqube') {
                     sh """
                         ${env.SCANNER_HOME}/sonar-scanner \
                         -Dsonar.projectKey=buggy_cars_test \
@@ -64,7 +74,7 @@ pipeline {
             }
         }
 
-         stage('Quality Gate') {
+        stage('Quality Gate') {
             steps {
                 echo '✅ Waiting for SonarQube Quality Gate...'
                 script {
