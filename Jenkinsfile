@@ -65,7 +65,7 @@ pipeline {
                         -Dsonar.projectKey=buggy_cars_test \
                         -Dsonar.sources=tests \
                         -Dsonar.host.url=${env.SONAR_HOST_URL} \
-                        -Dsonar.login=${env.SONAR_AUTH_TOKEN} \
+                        -Dsonar.token=${env.SONAR_AUTH_TOKEN} \
                         -Dsonar.cpd.exclusions=tests/** \
                         -Dsonar.coverage.exclusions=tests/** \
                         -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
