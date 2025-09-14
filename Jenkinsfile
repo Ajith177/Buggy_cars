@@ -64,13 +64,13 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
+         stage('Quality Gate') {
             steps {
                 echo '✅ Waiting for SonarQube Quality Gate...'
-                timeout(time: 12, unit: 'MINUTES') {
-                    script {
-                        def qg = waitForQualityGate(abortPipeline: true)
-                        echo "SonarQube Quality Gate status: ${qg.status}"
+                script {
+                    def qg = waitForQualityGate()
+                    if (qg.status != 'OK') {
+                        error "Quality Gate failed: ${qg.status}"
                     }
                 }
             }
