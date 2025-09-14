@@ -1,9 +1,18 @@
 pipeline {
     agent any
 
+    triggers {
+        githubPush()
+    }
+
     environment {
-        SONARQUBE_SERVER = 'Mysonarqube'      // Your SonarQube server config name
-        ALLURE_DEPLOY_DIR = '/var/www/html/allure' // Web server dir for Allure
+        SCANNER_HOME      = '/opt/sonar-scanner-5.0.1.3006-linux/bin'
+        SONAR_HOST_URL    = 'http://192.168.1.4:9000'
+        SONAR_AUTH_TOKEN  = credentials('token_sonar')
+        ALLURE_DEPLOY_DIR = '/var/www/html/allure'
+        ALLURE_URL        = 'http://192.168.1.4:8081'
+        PW_WORKERS        = '3'
+        TRIVY_FLAGS       = '--skip-version-check'
     }
 
     stages {
@@ -11,59 +20,67 @@ pipeline {
             steps {
                 echo '🧹 Cleaning old reports (Allure + Trivy)...'
                 sh '''
-                  # Allure cleanup
-                  rm -rf allure-results allure-report
+                  rm -rf allure-results allure-report trivy_report.txt trivy-report.zip allure-report.zip
                   mkdir -p allure-results allure-report
                   chmod -R 755 allure-results allure-report
-
-                  # Trivy cleanup
-                  rm -f trivy_report.txt trivy-report.zip
                 '''
             }
         }
 
-        stage('Checkout Code') {
+        stage('Clone') {
             steps {
-                echo '📥 Checking out source code...'
+                echo '🔄 Cloning repository...'
                 checkout scm
             }
         }
 
-        stage('Setup Python Env') {
+        stage('Install Dependencies') {
             steps {
-                echo '🐍 Setting up Python virtual environment...'
-                sh '''
-                  python3.11 -m venv venv
-                  . venv/bin/activate
-                  pip install --upgrade pip
-                  pip install -r requirements.txt
-                '''
+                echo '📦 Installing Node.js dependencies...'
+                sh 'npm ci'
             }
         }
 
-        stage('Run Unit Tests') {
+        stage('Run Playwright Tests') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/playwright:v1.55.0-jammy'
+                    args "-u root -v /var/lib/jenkins/npm-cache:/root/.npm -v ${WORKSPACE}/allure-results:/workspace/allure-results"
+                }
+            }
             steps {
-                echo '🧪 Running unit tests with pytest...'
-                sh '''
-                  . venv/bin/activate
-                  pytest --alluredir=allure-results || true
-                '''
+                script {
+                    def workers = env.PW_WORKERS ?: '1'
+                    echo "🧪 Running Playwright tests with ${workers} workers..."
+
+                    timeout(time: 15, unit: 'MINUTES') {
+                        sh 'npm ci'
+                        sh "npx playwright test --workers=${workers} --reporter=allure-playwright --output=/workspace/allure-results"
+                    }
+                }
+            }
+            post {
+                always {
+                    echo '🧹 Cleaning up Docker containers...'
+                    sh 'docker ps -aq --filter "status=exited" | xargs -r docker rm -f || true'
+                }
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis...'
-                withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh '''
-                      . venv/bin/activate
-                      sonar-scanner \
+                withSonarQubeEnv('Mysonarqube') {
+                    sh """
+                        ${env.SCANNER_HOME}/sonar-scanner \
                         -Dsonar.projectKey=buggy_cars_test \
-                        -Dsonar.sources=. \
-                        -Dsonar.python.version=3.11 \
-                        -Dsonar.host.url=http://192.168.1.4:9000 \
-                        -Dsonar.login=$SONAR_AUTH_TOKEN
-                    '''
+                        -Dsonar.sources=tests \
+                        -Dsonar.host.url=${env.SONAR_HOST_URL} \
+                        -Dsonar.token=${env.SONAR_AUTH_TOKEN} \
+                        -Dsonar.cpd.exclusions=tests/** \
+                        -Dsonar.coverage.exclusions=tests/** \
+                        -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
+                    """
                 }
             }
         }
@@ -72,10 +89,10 @@ pipeline {
             steps {
                 echo '🔐 Running Trivy vulnerability scan...'
                 sh '''
-                  rm -f trivy_report.txt
+                  rm -f trivy_report.txt trivy-report.zip
                   export TRIVY_CACHE_DIR=/var/lib/jenkins/trivy-cache
                   export TRIVY_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-db
-                  trivy fs --skip-version-check --no-progress --format table -o trivy_report.txt . || true
+                  trivy fs ${TRIVY_FLAGS} --no-progress --format table -o trivy_report.txt . || true
                 '''
             }
         }
@@ -83,35 +100,76 @@ pipeline {
         stage('Allure Report in Jenkins UI') {
             steps {
                 echo '📊 Publishing Allure Report to Jenkins UI...'
-                allure includeProperties: false, jdk: '', results: [[path: 'allure-results']]
+                allure includeProperties: false,
+                       jdk: '',
+                       reportBuildPolicy: 'ALWAYS',
+                       results: [[path: 'allure-results']]
             }
         }
 
         stage('Generate & Deploy Allure Report') {
             steps {
-                echo '🚀 Generating and deploying Allure report...'
-                sh '''
-                  npx allure generate allure-results --clean -o allure-report
-                  sudo mkdir -p ${ALLURE_DEPLOY_DIR}
-                  sudo rm -rf ${ALLURE_DEPLOY_DIR}/*
-                  sudo cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
-                '''
+                script {
+                    if (fileExists('allure-results')) {
+                        echo '🚀 Generating and deploying Allure report...'
+                        sh '''
+                          /opt/allure/bin/allure generate allure-results --clean -o allure-report
+                          sudo mkdir -p ${ALLURE_DEPLOY_DIR}
+                          sudo rm -rf ${ALLURE_DEPLOY_DIR}/*
+                          sudo cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
+                        '''
+                    } else {
+                        echo "❌ No allure-results found. Skipping report generation."
+                    }
+                }
+            }
+        }
+
+        stage('Notify Success') {
+            when {
+                expression { currentBuild.result == null || currentBuild.result in ['SUCCESS', 'UNSTABLE'] }
+            }
+            steps {
+                script {
+                    echo '📧 Sending success email...'
+                    sh 'zip -r allure-report.zip allure-report || true'
+                    sh 'zip -r trivy-report.zip trivy_report.txt || true'
+
+                    emailext(
+                        subject: "✅ Build Passed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                        body: """<p>Pipeline completed successfully 🎉</p>
+<ul>
+<li>Playwright tests executed</li>
+<li>Trivy scan completed</li>
+<li>Allure report published</li>
+</ul>
+<p><b>Links:</b><br>
+<a href='${env.BUILD_URL}'>Jenkins Job</a><br>
+<a href='${env.ALLURE_URL}'>Allure HTML Report</a></p>""",
+                        mimeType: 'text/html',
+                        to: 'loneloverioo@gmail.com',
+                        attachmentsPattern: 'allure-report.zip,trivy-report.zip'
+                    )
+                }
             }
         }
     }
 
     post {
-        success {
-            echo '✅ Pipeline finished successfully!'
-            emailext to: 'loneloverioo@gmail.com',
-                     subject: "✅ Buggy Cars Pipeline Success",
-                     body: "All stages completed successfully. Allure report available at http://192.168.1.4:8081"
-        }
         failure {
             echo '📧 Sending failure email...'
-            emailext to: 'loneloverioo@gmail.com',
-                     subject: "❌ Buggy Cars Pipeline Failed",
-                     body: "Some stages failed. Please check Jenkins console output."
+            emailext(
+                subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """<p>The pipeline has failed</p>
+<ul>
+<li>Playwright test errors</li>
+<li>Trivy scan findings</li>
+</ul>
+<p><b>Links:</b><br>
+<a href='${env.BUILD_URL}'>Jenkins Job</a></p>""",
+                mimeType: 'text/html',
+                to: 'loneloverioo@gmail.com'
+            )
         }
     }
 }
