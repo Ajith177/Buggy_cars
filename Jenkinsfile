@@ -98,9 +98,9 @@ pipeline {
                         echo '🚀 Generating and deploying Allure report...'
                         sh '''
                           /opt/allure/bin/allure generate allure-results --clean -o allure-report
-                          sudo mkdir -p ${ALLURE_DEPLOY_DIR}
-                          sudo rm -rf ${ALLURE_DEPLOY_DIR}/*
-                          sudo cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
+                          mkdir -p ${ALLURE_DEPLOY_DIR}
+                           rm -rf ${ALLURE_DEPLOY_DIR}/*
+                           cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
                         '''
                         echo "🌐 Allure report deployed at: ${ALLURE_URL}"
                     } else {
