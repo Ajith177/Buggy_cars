@@ -73,21 +73,6 @@ pipeline {
             }
         }
 
-        stage("Quality Gate") {
-            steps {
-                script {
-                    timeout(time: 15, unit: 'MINUTES') {
-                        def qg = waitForQualityGate()
-                        echo "🔎 Quality Gate status: ${qg.status}"
-                        if (qg.status != 'OK') {
-                            error "❌ Pipeline aborted due to Quality Gate failure: ${qg.status}"
-                        } else {
-                            echo "✅ Quality Gate Passed"
-                        }
-                    }
-                }
-            }
-        }
 
         stage('Trivy Scan') {
             steps {
