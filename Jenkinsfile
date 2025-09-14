@@ -74,15 +74,13 @@ pipeline {
             }
         }
 
-       
-
         stage('Trivy Scan') {
             steps {
                 echo '🔐 Running Trivy vulnerability scan...'
                 sh '''
                     export TRIVY_CACHE_DIR=/var/lib/jenkins/trivy-cache
                     export TRIVY_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-db
-                    trivy fs --no-progress --format table -o trivy_report.txt . || true
+                    trivy fs --skip-version-check --no-progress --format table -o trivy_report.txt . || true
                 '''
             }
         }
@@ -90,22 +88,33 @@ pipeline {
         stage('Allure Report in Jenkins UI') {
             steps {
                 echo '📊 Publishing Allure Report to Jenkins UI...'
-                allure includeProperties: false,
-                       jdk: '',
-                       reportBuildPolicy: 'ALWAYS',
-                       results: [[path: 'allure-results']]
+                // Only publish if allure-results exist
+                script {
+                    if (fileExists('allure-results')) {
+                        allure includeProperties: false,
+                               jdk: '',
+                               reportBuildPolicy: 'ALWAYS',
+                               results: [[path: 'allure-results']]
+                    } else {
+                        echo "❌ No allure-results directory found. Skipping Jenkins UI report."
+                    }
+                }
             }
         }
 
         stage('Generate & Deploy Allure Report') {
             steps {
                 echo '🚀 Generating and deploying Allure report...'
-                sh """
-                    npx allure generate allure-results --clean -o allure-report
-                    mkdir -p ${env.ALLURE_DEPLOY_DIR}
-                    rm -rf ${env.ALLURE_DEPLOY_DIR}/*
-                    cp -r allure-report/* ${env.ALLURE_DEPLOY_DIR}/
-                """
+                sh '''
+                    if [ -d "allure-results" ]; then
+                        /opt/allure/bin/allure generate allure-results --clean -o allure-report
+                        mkdir -p ${ALLURE_DEPLOY_DIR}
+                        rm -rf ${ALLURE_DEPLOY_DIR}/*
+                        cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
+                    else
+                        echo "❌ No allure-results directory found. Skipping Allure report generation."
+                    fi
+                '''
             }
         }
 
@@ -124,10 +133,9 @@ pipeline {
                         subject: "✅ Build Passed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                         body: """<p>Good news! The pipeline completed successfully 🎉</p>
 <ul>
-<li>SonarQube Quality Gate passed</li>
 <li>Playwright tests executed</li>
 <li>Trivy scan completed</li>
-<li>Allure report published</li>
+<li>Allure report published (if any)</li>
 </ul>
 <p><b>Links:</b><br>
 <a href='${env.BUILD_URL}'>Jenkins Job</a><br>
@@ -148,7 +156,6 @@ pipeline {
                 subject: "❌ Build Failed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: """<p>The pipeline has failed</p>
 <ul>
-<li>SonarQube Quality Gate failure</li>
 <li>Playwright test errors</li>
 <li>Trivy scan findings</li>
 </ul>
