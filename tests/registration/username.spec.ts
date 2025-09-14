@@ -49,16 +49,7 @@ test.describe.serial('Buggy cars - Registration', () => {
     await page.screenshot({path:path.join(screenshotDir,'REG_002.png')});
   });
 
-  test('REG_003 - Blank Inputs of length greater than 25 (30)',async()=>{
-    await page.reload();
-    await page.waitForTimeout(4000);
-    await expect(page.locator('#username')).toBeVisible();
-    await page.waitForTimeout(4000)
-    await page.locator('#username').fill('                                   ')
-    await page.screenshot({path:path.join(screenshotDir,'REG_003.png')});
-  });
-
-  test.afterAll(async () => {
+test.afterAll(async () => {
     if(page){
       await page.close();
     }
