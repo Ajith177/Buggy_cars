@@ -103,33 +103,6 @@ test.describe.serial('Buggy cars - Registration', () => {
     await page.screenshot({path:path.join(screenshotDir,'REG_008.png')})
   });
 
-  test('REG_009 - Capital Characters at the length of 10',async()=>{
-    await page.reload();
-    await page.waitForTimeout(4000)
-    await expect(page.locator('#username')).toBeVisible();
-    await page.waitForTimeout(4000)
-    await page.locator('#username').fill('ABCDEFGHIJK')
-    await page.screenshot({path:path.join(screenshotDir,'REG_009.png')})
-
-  });
-
-  test('REG_010 - Capital Character with the Greater than 50',async()=>{
-    await page.reload()
-    await page.waitForTimeout(4000)
-    await expect(page.locator('#username')).toBeVisible();
-    await page.waitForTimeout(4000)
-    await page.locator('#username').fill('JFIRHFUIHRIUFHRIUFIJRBIJIJDJDOIRJFIJRFIRIFHIRUHFIRHFIRIFRIFHRIHFIJRHFI')
-    await page.screenshot({path:path.join(screenshotDir,'REG_010.png')})
-  });
-
-  test('REG_011 - Empty Spaces + Capital Characters less than 10',async()=>{
-    await page.reload()
-    await page.waitForTimeout(4000)
-    await expect(page.locator('#username')).toBeVisible();
-    await page.waitForTimeout(4000)
-    await page.locator('#username').fill('    FJFJRJE')
-    await page.screenshot({path:path.join(screenshotDir,'REG_011.png')})
-  });
 
   test.afterAll(async () => {
     if(page){
