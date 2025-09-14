@@ -91,28 +91,28 @@ pipeline {
             }
         }
 
-        stage('Generate & Deploy Allure Report') {
-            steps {
-                script {
-                    if (fileExists('allure-results')) {
-                        echo '🚀 Generating and deploying Allure report...'
-                        sh '''
-                          /opt/allure/bin/allure generate allure-results --clean -o allure-report
+       stage('Generate & Deploy Allure Report') {
+        steps {
+            script {
+             if (fileExists('allure-results')) {
+                echo '🚀 Generating and deploying Allure report...'
+                sh '''
+                  /opt/allure/bin/allure generate allure-results --clean -o allure-report
 
-                          # Fully clean deploy directory to remove old reports
-                          rm -rf ${ALLURE_DEPLOY_DIR}
-                          mkdir -p ${ALLURE_DEPLOY_DIR}
+                  # Clean deploy folder without deleting folder itself
+                  rm -rf ${ALLURE_DEPLOY_DIR}/*
 
-                          # Copy new report
-                          cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
-                        '''
-                        echo "🌐 Allure report deployed at: ${ALLURE_URL}"
-                    } else {
-                        echo "❌ No allure-results found. Skipping report generation."
-                    }
-                }
+                  # Copy new report
+                  cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
+                '''
+                echo "🌐 Allure report deployed at: ${ALLURE_URL}"
+            } else {
+                echo "❌ No allure-results found. Skipping report generation."
             }
         }
+    }
+}
+
     }
 
     post {
