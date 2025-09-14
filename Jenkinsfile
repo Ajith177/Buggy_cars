@@ -12,6 +12,7 @@ pipeline {
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
         ALLURE_URL        = 'http://192.168.1.4:8081'
         PW_WORKERS        = '3'
+        TRIVY_FLAGS       = '--skip-version-check'
     }
 
     stages {
@@ -33,7 +34,7 @@ pipeline {
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.55.0-jammy'
-                    args '-u root -v /var/lib/jenkins/npm-cache:/root/.npm'
+                    args "-u root -v /var/lib/jenkins/npm-cache:/root/.npm -v ${WORKSPACE}/allure-results:/workspace/allure-results"
                 }
             }
             steps {
@@ -41,16 +42,15 @@ pipeline {
                     def workers = env.PW_WORKERS ?: '1'
                     echo "🧪 Running Playwright tests with ${workers} workers..."
 
-                    // Timeout protection
                     timeout(time: 15, unit: 'MINUTES') {
                         sh 'npm ci'
-                        sh "npx playwright test --workers=${workers} --reporter=allure-playwright"
+                        sh "npx playwright test --workers=${workers} --reporter=allure-playwright --output=${WORKSPACE}/allure-results"
                     }
                 }
             }
             post {
                 always {
-                    echo '🧹 Cleaning up any leftover Docker containers...'
+                    echo '🧹 Cleaning up Docker containers...'
                     sh 'docker ps -aq --filter "status=exited" | xargs -r docker rm -f || true'
                 }
             }
@@ -58,7 +58,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                echo '🔍 Running SonarQube analysis (coverage skipped)...'
+                echo '🔍 Running SonarQube analysis...'
                 withSonarQubeEnv('Mysonarqube') {
                     sh """
                         ${env.SCANNER_HOME}/sonar-scanner \
@@ -77,44 +77,39 @@ pipeline {
         stage('Trivy Scan') {
             steps {
                 echo '🔐 Running Trivy vulnerability scan...'
-                sh '''
+                sh """
                     export TRIVY_CACHE_DIR=/var/lib/jenkins/trivy-cache
                     export TRIVY_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-db
-                    trivy fs --skip-version-check --no-progress --format table -o trivy_report.txt . || true
-                '''
+                    trivy fs ${TRIVY_FLAGS} --no-progress --format table -o trivy_report.txt .
+                """
             }
         }
 
         stage('Allure Report in Jenkins UI') {
             steps {
                 echo '📊 Publishing Allure Report to Jenkins UI...'
-                // Only publish if allure-results exist
-                script {
-                    if (fileExists('allure-results')) {
-                        allure includeProperties: false,
-                               jdk: '',
-                               reportBuildPolicy: 'ALWAYS',
-                               results: [[path: 'allure-results']]
-                    } else {
-                        echo "❌ No allure-results directory found. Skipping Jenkins UI report."
-                    }
-                }
+                allure includeProperties: false,
+                       jdk: '',
+                       reportBuildPolicy: 'ALWAYS',
+                       results: [[path: 'allure-results']]
             }
         }
 
         stage('Generate & Deploy Allure Report') {
             steps {
-                echo '🚀 Generating and deploying Allure report...'
-                sh '''
-                    if [ -d "allure-results" ]; then
-                        /opt/allure/bin/allure generate allure-results --clean -o allure-report
-                        mkdir -p ${ALLURE_DEPLOY_DIR}
-                        rm -rf ${ALLURE_DEPLOY_DIR}/*
-                        cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
-                    else
-                        echo "❌ No allure-results directory found. Skipping Allure report generation."
-                    fi
-                '''
+                script {
+                    if (fileExists('allure-results')) {
+                        echo '🚀 Generating and deploying Allure report...'
+                        sh """
+                            /opt/allure/bin/allure generate allure-results --clean -o allure-report
+                            mkdir -p ${env.ALLURE_DEPLOY_DIR}
+                            rm -rf ${env.ALLURE_DEPLOY_DIR}/*
+                            cp -r allure-report/* ${env.ALLURE_DEPLOY_DIR}/
+                        """
+                    } else {
+                        echo "❌ No allure-results found. Skipping report generation."
+                    }
+                }
             }
         }
 
@@ -125,17 +120,16 @@ pipeline {
             steps {
                 script {
                     echo '📧 Sending success email...'
-
                     sh 'zip -r allure-report.zip allure-report || true'
                     sh 'zip -r trivy-report.zip trivy_report.txt || true'
 
                     emailext(
                         subject: "✅ Build Passed: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                        body: """<p>Good news! The pipeline completed successfully 🎉</p>
+                        body: """<p>Pipeline completed successfully 🎉</p>
 <ul>
 <li>Playwright tests executed</li>
 <li>Trivy scan completed</li>
-<li>Allure report published (if any)</li>
+<li>Allure report published</li>
 </ul>
 <p><b>Links:</b><br>
 <a href='${env.BUILD_URL}'>Jenkins Job</a><br>
