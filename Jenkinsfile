@@ -58,7 +58,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis...'
-                withSonarQubeEnv('Mysonarqube') {   // Jenkins global config (token already stored there)
+                withSonarQubeEnv('Mysonarqube') {   
                     sh """
                         ${SCANNER_HOME}/sonar-scanner \
                         -Dsonar.projectKey=buggy_cars_test \
@@ -98,9 +98,13 @@ pipeline {
                         echo '🚀 Generating and deploying Allure report...'
                         sh '''
                           /opt/allure/bin/allure generate allure-results --clean -o allure-report
+
+                          # Fully clean deploy directory to remove old reports
+                          rm -rf ${ALLURE_DEPLOY_DIR}
                           mkdir -p ${ALLURE_DEPLOY_DIR}
-                           rm -rf ${ALLURE_DEPLOY_DIR}/*
-                           cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
+
+                          # Copy new report
+                          cp -r allure-report/* ${ALLURE_DEPLOY_DIR}/
                         '''
                         echo "🌐 Allure report deployed at: ${ALLURE_URL}"
                     } else {
@@ -113,11 +117,11 @@ pipeline {
 
     post {
         success {
-             script {
-            // Zip reports for email
-            sh 'zip -r allure-report.zip allure-report || true'
-            sh 'zip -r trivy-report.zip trivy_report.txt || true'
-        }
+            script {
+                // Zip reports for email
+                sh 'zip -r allure-report.zip allure-report || true'
+                sh 'zip -r trivy-report.zip trivy_report.txt || true'
+            }
             emailext(
                 subject: "✅ Build Passed: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """<p>Pipeline completed successfully 🎉</p>
@@ -129,7 +133,8 @@ pipeline {
 </ul>
 <p><b>Jenkins Job:</b> <a href='${BUILD_URL}'>${BUILD_URL}</a></p>""",
                 mimeType: 'text/html',
-                to: 'loneloverioo@gmail.com'
+                to: 'loneloverioo@gmail.com',
+                attachmentsPattern: 'allure-report.zip,trivy-report.zip'
             )
         }
 
