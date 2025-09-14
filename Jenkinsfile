@@ -8,7 +8,6 @@ pipeline {
     environment {
         SCANNER_HOME      = '/opt/sonar-scanner-5.0.1.3006-linux/bin'
         SONAR_HOST_URL    = 'http://192.168.1.4:9000'
-        SONAR_AUTH_TOKEN  = credentials('token_sonar')
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
         ALLURE_URL        = 'http://192.168.1.4:8081'
         PW_WORKERS        = '3'
@@ -59,13 +58,12 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 echo '🔍 Running SonarQube analysis...'
-                withSonarQubeEnv('Mysonarqube') {
+                withSonarQubeEnv('Mysonarqube') {   // Jenkins global config (token already stored there)
                     sh """
                         ${SCANNER_HOME}/sonar-scanner \
                         -Dsonar.projectKey=buggy_cars_test \
                         -Dsonar.sources=tests \
                         -Dsonar.host.url=${SONAR_HOST_URL} \
-                        -Dsonar.token=${SONAR_AUTH_TOKEN} \
                         -Dsonar.coverage.exclusions=tests/** \
                         -Dsonar.exclusions=**/venv/**,**/node_modules/**,**/allure-report/**,**/allure-results/**
                     """
@@ -73,6 +71,14 @@ pipeline {
             }
         }
 
+        stage('Quality Gate') {
+            steps {
+                echo '✅ Checking SonarQube Quality Gate...'
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
 
         stage('Trivy Scan') {
             steps {
