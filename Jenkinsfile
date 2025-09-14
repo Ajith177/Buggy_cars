@@ -8,7 +8,7 @@ pipeline {
     environment {
         SCANNER_HOME      = '/opt/sonar-scanner-5.0.1.3006-linux/bin'
         SONAR_HOST_URL    = 'http://192.168.1.4:9000'
-        SONAR_AUTH_TOKEN  = credentials('sonar_token')
+        SONAR_AUTH_TOKEN  = credentials('sonarqubetoken')
         ALLURE_DEPLOY_DIR = '/var/www/html/allure'
         ALLURE_URL        = 'http://192.168.1.4:8081'
         PW_WORKERS        = '3'
