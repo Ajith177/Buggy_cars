@@ -113,6 +113,11 @@ pipeline {
 
     post {
         success {
+             script {
+            // Zip reports for email
+            sh 'zip -r allure-report.zip allure-report || true'
+            sh 'zip -r trivy-report.zip trivy_report.txt || true'
+        }
             emailext(
                 subject: "✅ Build Passed: ${JOB_NAME} #${BUILD_NUMBER}",
                 body: """<p>Pipeline completed successfully 🎉</p>
