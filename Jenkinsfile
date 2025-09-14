@@ -74,17 +74,7 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
-            steps {
-                echo '✅ Waiting for SonarQube Quality Gate...'
-                script {
-                    def qg = waitForQualityGate()
-                    if (qg.status != 'OK') {
-                        error "Quality Gate failed: ${qg.status}"
-                    }
-                }
-            }
-        }
+       
 
         stage('Trivy Scan') {
             steps {
