@@ -12,6 +12,8 @@ pipeline {
         ALLURE_URL        = 'http://192.168.1.4:8081'
         PW_WORKERS        = '3'
         TRIVY_FLAGS       = '--skip-version-check'
+        JENKINS_UID       = sh(script: 'id -u jenkins', returnStdout: true).trim()
+        JENKINS_GID       = sh(script: 'id -g jenkins', returnStdout: true).trim()
     }
 
     stages {
