@@ -15,12 +15,15 @@ pipeline {
     }
 
     stages {
-        stage('Cleanup Workspace') {
-    steps {
-        echo '🧹 Cleaning workspace before cloning...'
-        deleteDir()
-    }
-}
+        stage('Cleanup Reports') {
+            steps {
+                echo '🧹 Cleaning old reports...'
+                sh '''
+                  rm -rf allure-results allure-report trivy_report.txt allure-report.zip trivy-report.zip
+                  mkdir -p allure-results allure-report
+                '''
+            }
+        }
 
         stage('Clone') {
             steps {
