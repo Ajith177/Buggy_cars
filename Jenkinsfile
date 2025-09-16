@@ -12,8 +12,8 @@ pipeline {
         ALLURE_URL        = 'http://192.168.1.4:8081'
         PW_WORKERS        = '3'
         TRIVY_FLAGS       = '--skip-version-check'
-        JENKINS_UID       = sh(script: 'id -u jenkins', returnStdout: true).trim()
-        JENKINS_GID       = sh(script: 'id -g jenkins', returnStdout: true).trim()
+        // JENKINS_UID       = sh(script: 'id -u jenkins', returnStdout: true).trim()
+        // JENKINS_GID       = sh(script: 'id -g jenkins', returnStdout: true).trim()
     }
 
     stages {
@@ -21,7 +21,12 @@ pipeline {
             steps {
                 echo '🧹 Cleaning old reports...'
                 sh '''
-                  rm -rf allure-results allure-report trivy_report.txt allure-report.zip trivy-report.zip
+                 # Remove reports only if present, skip if not
+                  rm -rf allure-results || true
+                  rm -rf allure-report || true
+                  rm -f trivy_report.txt allure-report.zip trivy-report.zip || true
+
+                  # Recreate empty folders
                   mkdir -p allure-results allure-report
                 '''
             }
@@ -45,7 +50,8 @@ pipeline {
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.55.0-jammy'
-                    args "-u ${JENKINS_UID}:${JENKINS_GID} -v ${WORKSPACE}/allure-results:/workspace/allure-results"
+                    args "-u root -v ${WORKSPACE}/allure-results:/workspace/allure-results"
+
                 }
             }
             steps {
