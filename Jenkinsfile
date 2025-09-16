@@ -15,11 +15,16 @@ pipeline {
     }
 
     stages {
+        stage('Cleanup Workspace') {
+    steps {
+        echo '🧹 Cleaning workspace before cloning...'
+        deleteDir()
+    }
+}
 
         stage('Clone') {
             steps {
                 echo '🔄 Cloning repository...'
-                deleteDir()
                 checkout scm
             }
         }
