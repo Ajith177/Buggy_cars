@@ -57,35 +57,55 @@ test.describe.serial('Buggy cars - Confirm Password', () => {
     await expect(page.locator('#username')).toBeVisible()
     await page.waitForTimeout(4000)
     await page.locator('#username').fill('smart')
+    await page.waitForTimeout(40000)                       
+    await page.screenshot({path:path.join(screenshotDir,'REG_CP_0162.png')})
+  });
+
+  test('REG_CP_005 - Input for First_name',async()=>{
     await page.waitForTimeout(4000)
     await expect(page.locator('#firstName')).toBeVisible()
     await page.waitForTimeout(4000)
     await page.locator('#firstName').fill('kumar')
+    await page.waitForTimeout(4000)        
+    await page.screenshot({path:path.join(screenshotDir,'REG_CP_0163.png')})
+  });
+
+  test('REG_CP_005 - Input for Last_name',async()=>{
     await page.waitForTimeout(4000)
     await expect(page.locator('#lastname')).toBeVisible()
     await page.waitForTimeout(4000)
     await page.locator('#lastname').fill('b')
     await page.waitForTimeout(4000)
+    await page.screenshot({path:path.join(screenshotDir,'REG_CP_0164.png')})
+  });
+
+  test('REG_CP_006 - Input for Password',async()=>{
+    await page.waitForTimeout(4000)
     await expect(page.locator('#password')).toBeVisible()
     await page.waitForTimeout(4000)
     await page.locator('#password').fill('Kumar@123')
     await page.waitForTimeout(4000)
+    await page.screenshot({path:path.join(screenshotDir,'REG_CP_0165.png')})
+  });
+
+  test('REG_CP_007 - Input for Confirm_Password',async()=>{
+    await page.waitForTimeout(4000)
     await expect(page.locator('#confirmPassword')).toBeVisible()
     await page.waitForTimeout(4000)
     await page.locator('confirmPassword').fill('Kumar@123')
-    await page.waitForTimeout(40000)                       
-    await page.screenshot({path:path.join(screenshotDir,'REG_CP_0162.png')})
+    await page.waitForTimeout(4000)
+    await page.screenshot({path:path.join(screenshotDir,'REG_CP_0166.png')})
+  });
+
+  
+  test('REG_CP_008 - Click on Cancel and Register Button',async()=>{
+    await page.waitForTimeout(4000)
     await page.getByRole('button',{name:'Cancel'}).click()
     await page.waitForTimeout(4000)
     await page.getByRole('link',{name:'Register'}).click()
     await page.waitForTimeout(4000)
-    await page.screenshot({path:path.join(screenshotDir,'Sample.png')})
+    await page.screenshot({path:path.join(screenshotDir,'REG_CP_0167.png')})
   });
-
-
-
-
-
 
 
 
