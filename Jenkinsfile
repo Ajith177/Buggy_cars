@@ -43,7 +43,7 @@ pipeline {
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:v1.55.0-jammy'
-                    args "-u root -v ${WORKSPACE}/allure-results:/workspace/allure-results"
+                    args "-u ${JENKINS_UID}:${JENKINS_GID} -v ${WORKSPACE}/allure-results:/workspace/allure-results"
                 }
             }
             steps {
