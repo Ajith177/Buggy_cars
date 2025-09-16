@@ -264,7 +264,19 @@ Screenshot_file='BUG_005.png'
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+Bug ID: BUG-006
+Title: Gender dropdown allows manual text input instead of restricting to predefined options
 
+Description:
+In the Profile module, the Gender field is implemented as a dropdown containing predefined options: Male and Female. However, the field currently allows users to type arbitrary text values (e.g., “QWER”, “HBRF”) instead of being restricted to selecting only from the available options.
+
+This causes data inconsistency and potential issues in downstream processes (e.g., reporting, validation, or integrations) since invalid gender values can be saved or attempted to be submitted.
+
+Steps to Reproduce:
+
+Navigate to https://buggy.justtestit.org/
+
+Screenshot_file='BUG_006.png'
 
 
 
