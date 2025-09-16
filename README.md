@@ -49,3 +49,12 @@ Integrated test execution into a CI/CD pipeline (Jenkins).
 ✅ API Testing
 
 Performed API-level validations on key endpoints.
+
+
+## 🛠️ Tools & Frameworks Used  
+- **Manual Testing** → Test case design, bug reporting  
+- **Automation** → Playwright (TypeScript) with Page Object Model  
+- **CI/CD** → Jenkins integration  
+- **API Testing** → Bruno (for REST API validations)  
+- **Version Control** → GitHub  
+- **Other Tools** → Browser DevTools, Screenshot utilities  
