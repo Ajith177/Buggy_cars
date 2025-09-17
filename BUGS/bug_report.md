@@ -113,8 +113,7 @@ OS: Windows 10 (10.0.19045.6332)
 
 Browsers: Chrome 140.0, Edge 140.0, Firefox (latest)
 
-Screenshot / Screen Recording:
-(Attach a short screen recording or screenshot sequence if possible — e.g., screenshots/3_bug.gif)
+
 
 Suggested Fix / Workaround:
 
@@ -181,8 +180,6 @@ OS: Windows 10 (10.0.19045.6332)
 
 Browsers: Chrome 140.0, Edge 140.0, Firefox (latest)
 
-Screenshot / Screen Recording:
-(Attach screenshots or a short video showing the difference in behavior — e.g., screenshots/4_bug.gif)
 
 Suggested Fix / Workaround:
 
