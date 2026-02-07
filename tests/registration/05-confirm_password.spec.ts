@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect , Page } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 
 test.describe.serial('Buggy cars - Confirm Password', () => {
-  let page;
+  let page : Page
   const screenshotDir = path.join(__dirname, 'screenshots');
 
   test.beforeAll(async ({ browser }) => {
@@ -78,9 +78,6 @@ test.describe.serial('Buggy cars - Confirm Password', () => {
     await page.getByRole('link',{name:'Register'}).click()
     await page.screenshot({path:path.join(screenshotDir,'REG_CP_0167.png')})
   });
-
-
-
 
   test.afterAll(async () => {
     if (page) await page.close();

@@ -8,4 +8,3 @@ node_modules/
 tests/**/screenshots/
 allure-results/
 allure-report/
-

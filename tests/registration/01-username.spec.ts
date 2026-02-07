@@ -1,10 +1,10 @@
-import { test, expect } from '@playwright/test';
+import { test, expect,Page } from '@playwright/test';
 import path from 'path';
 import fs from 'fs';
 
 
 test.describe.serial('Buggy cars - Registration', () => {
-  let page;
+  let page :Page
   const screenshotDir = path.join(__dirname, 'screenshots');
 
   // Runs once before all tests
