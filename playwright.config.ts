@@ -11,6 +11,7 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+const isDemoMode = !!process.env.PW_DEMO;
 export default defineConfig({
   testDir: './tests',
   /* Run tests in files in parallel */
@@ -30,6 +31,13 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    headless:!isDemoMode,
+    video:isDemoMode ? 'on':'off',
+    launchOptions:isDemoMode
+    ?{
+      slowMo:200
+    }
+    :undefined
   },
 
   /* Configure projects for major browsers */
