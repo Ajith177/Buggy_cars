@@ -1,0 +1,25 @@
+meta {
+  name: User_created
+  type: http
+  seq: 4
+}
+
+post {
+  url: https://k51qryqov3.execute-api.ap-southeast-2.amazonaws.com/prod/users
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "username": "usermadara",
+    "firstName": "usermadara",
+    "lastName": "usermadara",
+    "password": "User@123",
+    "confirmPassword": "User@123"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

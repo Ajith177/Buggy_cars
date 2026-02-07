@@ -1,0 +1,30 @@
+meta {
+  name: Token
+  type: http
+  seq: 5
+}
+
+post {
+  url: https://k51qryqov3.execute-api.ap-southeast-2.amazonaws.com/prod/oauth/token
+  body: text
+  auth: inherit
+}
+
+body:text {
+  grant_type=password&username=usermadara&password=User@123
+}
+
+tests {
+  test("Response status is 400", () => {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Response time < 4000ms", () => {
+    expect(res.time).to.be.below(3000);
+  });
+  
+}
+
+settings {
+  encodeUrl: true
+}

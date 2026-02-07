@@ -1,0 +1,15 @@
+meta {
+  name: Profile
+  type: http
+  seq: 10
+}
+
+get {
+  url: https://k51qryqov3.execute-api.ap-southeast-2.amazonaws.com/prod/users/profile
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}

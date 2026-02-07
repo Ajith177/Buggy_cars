@@ -1,0 +1,21 @@
+{
+  "name": "buggy_car",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:coverage": "nyc --reporter=lcov --reporter=text npx playwright test --workers=4 --reporter=allure-playwright"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.3.1",
+    "allure-playwright": "^2.0.0",
+    "istanbul": "^0.4.5",
+    "nyc": "^17.1.0"
+  }
+}

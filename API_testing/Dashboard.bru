@@ -1,0 +1,33 @@
+meta {
+  name: Dashboard
+  type: http
+  seq: 1
+}
+
+get {
+  url: https://k51qryqov3.execute-api.ap-southeast-2.amazonaws.com/prod/dashboard
+  body: none
+  auth: inherit
+}
+
+script:post-response {
+  test("Response status is 200", () => {
+    expect(res.status).to.equal(200);
+  });
+  
+  test("Response time < 1000ms", () => {
+    expect(res.time).to.be.below(2000);
+  });
+  
+  test("Response has make field", () => {
+    expect(res.body).to.have.property("make");
+  });
+  
+  test("Car make is Lamborghini", () => {
+    expect(res.body.make.name).to.equal("Lamborghini");
+  });
+}
+
+settings {
+  encodeUrl: true
+}
